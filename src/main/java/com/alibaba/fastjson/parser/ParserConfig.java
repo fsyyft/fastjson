@@ -48,6 +48,7 @@ import com.alibaba.fastjson.asm.ClassReader;
 import com.alibaba.fastjson.asm.TypeCollector;
 import com.alibaba.fastjson.parser.deserializer.*;
 import com.alibaba.fastjson.serializer.*;
+import com.alibaba.fastjson.spi.Module;
 import com.alibaba.fastjson.util.*;
 import com.alibaba.fastjson.util.IdentityHashMap;
 import com.alibaba.fastjson.util.ServiceLoader;
@@ -118,6 +119,7 @@ public class ParserConfig {
     private boolean                                         jacksonCompatible     = false;
 
     public boolean                                          compatibleWithJavaBean = TypeUtils.compatibleWithJavaBean;
+    private List<Module>                                    modules                = new ArrayList<Module>();
 
     {
         denyHashCodes = new long[]{
@@ -448,6 +450,14 @@ public class ParserConfig {
             return derializer;
         }
 
+        for (Module module : modules) {
+            derializer = module.createDeserializer(this, clazz);
+            if (derializer != null) {
+                putDeserializer(type, derializer);
+                return derializer;
+            }
+        }
+
         String className = clazz.getName();
         className = className.replace('$', '.');
 
@@ -570,6 +580,10 @@ public class ParserConfig {
                 // skip
                 guavaError = true;
             }
+        }
+
+        if (className.equals("java.nio.ByteBuffer")) {
+            deserializers.put(clazz, derializer = ByteBufferCodec.instance);
         }
 
         if (className.equals("java.nio.file.Path")) {
@@ -1188,5 +1202,9 @@ public class ParserConfig {
 
     public void register(String typeName, Class type) {
         typeMapping.putIfAbsent(typeName, type);
+    }
+
+    public void register(Module module) {
+        this.modules.add(module);
     }
 }

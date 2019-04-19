@@ -950,6 +950,20 @@ public abstract class JSON implements JSONStreamAware, JSONAware {
         }
     }
 
+    /**
+     * @since 1.2.57
+     */
+    public String toString(SerializerFeature... features) {
+        SerializeWriter out = new SerializeWriter(null, JSON.DEFAULT_GENERATE_FEATURE, features);
+
+        try {
+            new JSONSerializer(out).write(this);
+            return out.toString();
+        } finally {
+            out.close();
+        }
+    }
+
     public void writeJSONString(Appendable appendable) {
         SerializeWriter out = new SerializeWriter();
         try {
@@ -1229,5 +1243,5 @@ public abstract class JSON implements JSONStreamAware, JSONAware {
         parser.handleResovleTask(value);
     }
 
-    public final static String VERSION = "1.2.57";
+    public final static String VERSION = "1.2.58";
 }

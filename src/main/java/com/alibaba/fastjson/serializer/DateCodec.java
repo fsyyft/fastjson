@@ -49,6 +49,25 @@ public class DateCodec extends AbstractDateDeserializer implements ObjectSeriali
             out.writeNull();
             return;
         }
+
+        Class<?> clazz = object.getClass();
+        if (clazz == java.sql.Date.class) {
+            long millis = ((java.sql.Date) object).getTime();
+            TimeZone timeZone = serializer.timeZone;
+            int offset = timeZone.getOffset(millis);
+            if (millis % offset == 0) {
+                out.writeString(object.toString());
+                return;
+            }
+        }
+
+        if (clazz == java.sql.Time.class) {
+            long millis = ((java.sql.Time) object).getTime();
+            if (millis < 24L * 60L * 60L * 1000L) {
+                out.writeString(object.toString());
+                return;
+            }
+        }
         
         Date date;
         if (object instanceof Date) {
@@ -69,15 +88,15 @@ public class DateCodec extends AbstractDateDeserializer implements ObjectSeriali
         }
         
         if (out.isEnabled(SerializerFeature.WriteClassName)) {
-            if (object.getClass() != fieldType) {
-                if (object.getClass() == java.util.Date.class) {
+            if (clazz != fieldType) {
+                if (clazz == java.util.Date.class) {
                     out.write("new Date(");
                     out.writeLong(((Date) object).getTime());
                     out.write(')');
                 } else {
                     out.write('{');
                     out.writeFieldName(JSON.DEFAULT_TYPE_KEY);
-                    serializer.write(object.getClass().getName());
+                    serializer.write(clazz.getName());
                     out.writeFieldValue(',', "val", ((Date) object).getTime());
                     out.write('}');
                 }
